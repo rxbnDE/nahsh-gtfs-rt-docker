@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis
+    restart: unless-stopped
+    networks:
+    - backend
+  postgres:
+    image: postgis/postgis
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+    networks:
+      - backend
+  nats-streaming:
+    image: nats-streaming
+    networks:
+      - backend
+  app:
+    depends_on:
+      - redis
+      - postgres
+      - nats-streaming
+    build: ./app
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - $LOCAL_PORT:3000
+    networks:
+      - backend
+      - frontend
+    environment:
+      - PGHOST=postgres
+      - PGUSER=postgres
+      - PGPASSWORD=$POSTGRES_PASSWORD
+      - REDIS_URL=http://redis:6379/
+      - NATS_STREAMING_URL=http://nats-streaming:4222/
+    stdin_open: true
+    tty: true
+networks:
+  backend:
+  frontend:
